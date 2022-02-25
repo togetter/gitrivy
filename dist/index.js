@@ -11389,6 +11389,7 @@ const child_process_1 = __webpack_require__(129);
 const core = __importStar(__webpack_require__(470));
 function scan(trivyPath, image, option) {
     const args = [
+        'image',
         '--severity',
         option.severity,
         '--vuln-type',
