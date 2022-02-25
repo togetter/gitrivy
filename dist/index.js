@@ -11398,7 +11398,6 @@ function scan(trivyPath, image, option) {
         'template',
         '--template',
         option.template,
-        '--quiet',
         '--no-progress',
         '--exit-code',
         '255'
