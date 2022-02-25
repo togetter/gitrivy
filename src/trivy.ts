@@ -17,7 +17,6 @@ export function scan(
     'template',
     '--template',
     option.template,
-    '--quiet',
     '--no-progress',
     '--exit-code',
     '255'
