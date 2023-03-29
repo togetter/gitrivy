@@ -1808,10 +1808,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.GitHub = void 0;
 const core = __importStar(__webpack_require__(470));
 const github = __importStar(__webpack_require__(469));
-const rest_1 = __webpack_require__(889);
 class GitHub {
-    constructor(token) {
-        this.client = new rest_1.Octokit({ auth: token });
+    constructor(client) {
+        this.client = client;
     }
     getTrivyIssues(image, labels) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -1842,7 +1841,7 @@ class GitHub {
                 yield this.updateIssue(existingIssue.number, options);
                 return {
                     issueNumber: existingIssue.number,
-                    htmlUrl: existingIssue.html_url,
+                    htmlUrl: existingIssue.html_url
                 };
             }
             else {
@@ -2128,7 +2127,7 @@ module.exports = () => {
 //
 // ignored entries get .resume() called on them straight away
 
-const warner = __webpack_require__(796)
+const warner = __webpack_require__(476)
 const path = __webpack_require__(622)
 const Header = __webpack_require__(232)
 const EE = __webpack_require__(614)
@@ -3175,7 +3174,7 @@ const OPENFILE = Symbol('openfile')
 const ONOPENFILE = Symbol('onopenfile')
 const CLOSE = Symbol('close')
 const MODE = Symbol('mode')
-const warner = __webpack_require__(796)
+const warner = __webpack_require__(476)
 const winchars = __webpack_require__(478)
 
 const modeFix = __webpack_require__(904)
@@ -3632,6 +3631,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const core = __importStar(__webpack_require__(470));
+const rest_1 = __webpack_require__(889);
 const downloader_1 = __webpack_require__(379);
 const github_1 = __webpack_require__(146);
 const inputs_1 = __webpack_require__(679);
@@ -3640,13 +3640,14 @@ function run() {
     return __awaiter(this, void 0, void 0, function* () {
         const inputs = new inputs_1.Inputs();
         inputs.validate();
-        const downloader = new downloader_1.Downloader();
+        const octokit = new rest_1.Octokit({ auth: inputs.token });
+        const downloader = new downloader_1.Downloader(octokit);
         const trivyCmdPath = yield downloader.download(inputs.trivy.version);
         const result = trivy_1.scan(trivyCmdPath, inputs.image, inputs.trivy.option);
         if (!result) {
             return;
         }
-        const github = new github_1.GitHub(inputs.token);
+        const github = new github_1.GitHub(octokit);
         const issueOption = Object.assign({ body: result }, inputs.issue);
         const output = yield github.createOrUpdateIssue(inputs.image, issueOption);
         core.setOutput('html_url', output.htmlUrl);
@@ -3710,14 +3711,14 @@ const fs_1 = __importDefault(__webpack_require__(747));
 const zlib_1 = __importDefault(__webpack_require__(761));
 const tar_1 = __importDefault(__webpack_require__(885));
 const core = __importStar(__webpack_require__(470));
-const rest_1 = __webpack_require__(889);
 const node_fetch_1 = __importDefault(__webpack_require__(454));
 class Downloader {
-    constructor() {
+    constructor(client) {
         this.trivyRepo = {
             owner: 'aquasecurity',
-            repo: 'trivy',
+            repo: 'trivy'
         };
+        this.client = client;
     }
     download(version, trivyCmdDir = __dirname) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -3767,13 +3768,12 @@ class Downloader {
     getAssets(version) {
         return __awaiter(this, void 0, void 0, function* () {
             let response;
-            const client = new rest_1.Octokit();
             if (version === 'latest') {
-                response = yield client.repos.getLatestRelease(Object.assign({}, this.trivyRepo));
+                response = yield this.client.repos.getLatestRelease(Object.assign({}, this.trivyRepo));
                 version = response.data.tag_name.replace(/v/, '');
             }
             else {
-                response = yield client.repos.getReleaseByTag(Object.assign(Object.assign({}, this.trivyRepo), { tag: `v${version}` }));
+                response = yield this.client.repos.getReleaseByTag(Object.assign(Object.assign({}, this.trivyRepo), { tag: `v${version}` }));
             }
             return { assets: response.data.assets, version };
         });
@@ -3956,7 +3956,7 @@ const list = opt => new Parser(opt)
 Object.defineProperty(exports, '__esModule', { value: true });
 
 var isPlainObject = __webpack_require__(3);
-var universalUserAgent = __webpack_require__(526);
+var universalUserAgent = __webpack_require__(796);
 
 function lowercaseKeys(object) {
   if (!object) {
@@ -4564,7 +4564,7 @@ function escapeProperty(s) {
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
-var universalUserAgent = __webpack_require__(526);
+var universalUserAgent = __webpack_require__(796);
 var beforeAfterHook = __webpack_require__(523);
 var request = __webpack_require__(753);
 var graphql = __webpack_require__(898);
@@ -6788,6 +6788,35 @@ exports.getState = getState;
 
 /***/ }),
 
+/***/ 476:
+/***/ (function(module) {
+
+"use strict";
+
+module.exports = Base => class extends Base {
+  warn (code, message, data = {}) {
+    if (this.file)
+      data.file = this.file
+    if (this.cwd)
+      data.cwd = this.cwd
+    data.code = message instanceof Error && message.code || code
+    data.tarCode = code
+    if (!this.strict && data.recoverable !== false) {
+      if (message instanceof Error) {
+        data = Object.assign(message, data)
+        message = message.message
+      }
+      this.emit('warn', data.tarCode, message, data)
+    } else if (message instanceof Error) {
+      this.emit('error', Object.assign(message, data))
+    } else
+      this.emit('error', Object.assign(new Error(`${code}: ${message}`), data))
+  }
+}
+
+
+/***/ }),
+
 /***/ 478:
 /***/ (function(module) {
 
@@ -6993,32 +7022,6 @@ module.exports = Hook
 module.exports.Hook = Hook
 module.exports.Singular = Hook.Singular
 module.exports.Collection = Hook.Collection
-
-
-/***/ }),
-
-/***/ 526:
-/***/ (function(__unusedmodule, exports) {
-
-"use strict";
-
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-function getUserAgent() {
-  if (typeof navigator === "object" && "userAgent" in navigator) {
-    return navigator.userAgent;
-  }
-
-  if (typeof process === "object" && "version" in process) {
-    return `Node.js/${process.version.substr(1)} (${process.platform}; ${process.arch})`;
-  }
-
-  return "<environment undetectable>";
-}
-
-exports.getUserAgent = getUserAgent;
-//# sourceMappingURL=index.js.map
 
 
 /***/ }),
@@ -11007,7 +11010,7 @@ const ONDRAIN = Symbol('ondrain')
 
 const fs = __webpack_require__(747)
 const path = __webpack_require__(622)
-const warner = __webpack_require__(796)
+const warner = __webpack_require__(476)
 
 const Pack = warner(class Pack extends MiniPass {
   constructor (opt) {
@@ -11445,7 +11448,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
 
 var endpoint = __webpack_require__(385);
-var universalUserAgent = __webpack_require__(526);
+var universalUserAgent = __webpack_require__(796);
 var isPlainObject = __webpack_require__(701);
 var nodeFetch = _interopDefault(__webpack_require__(454));
 var requestError = __webpack_require__(463);
@@ -11600,30 +11603,27 @@ module.exports = require("zlib");
 /***/ }),
 
 /***/ 796:
-/***/ (function(module) {
+/***/ (function(__unusedmodule, exports) {
 
 "use strict";
 
-module.exports = Base => class extends Base {
-  warn (code, message, data = {}) {
-    if (this.file)
-      data.file = this.file
-    if (this.cwd)
-      data.cwd = this.cwd
-    data.code = message instanceof Error && message.code || code
-    data.tarCode = code
-    if (!this.strict && data.recoverable !== false) {
-      if (message instanceof Error) {
-        data = Object.assign(message, data)
-        message = message.message
-      }
-      this.emit('warn', data.tarCode, message, data)
-    } else if (message instanceof Error) {
-      this.emit('error', Object.assign(message, data))
-    } else
-      this.emit('error', Object.assign(new Error(`${code}: ${message}`), data))
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+function getUserAgent() {
+  if (typeof navigator === "object" && "userAgent" in navigator) {
+    return navigator.userAgent;
   }
+
+  if (typeof process === "object" && "version" in process) {
+    return `Node.js/${process.version.substr(1)} (${process.platform}; ${process.arch})`;
+  }
+
+  return "<environment undetectable>";
 }
+
+exports.getUserAgent = getUserAgent;
+//# sourceMappingURL=index.js.map
 
 
 /***/ }),
@@ -13623,7 +13623,7 @@ const parse = module.exports = opt => opt ? Object.keys(opt).map(k => [
 Object.defineProperty(exports, '__esModule', { value: true });
 
 var request = __webpack_require__(753);
-var universalUserAgent = __webpack_require__(526);
+var universalUserAgent = __webpack_require__(796);
 
 const VERSION = "4.6.2";
 
