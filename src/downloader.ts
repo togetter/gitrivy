@@ -99,6 +99,10 @@ export class Downloader {
     return new Promise((resolve, reject) => {
       const gunzip = zlib.createGunzip();
       const extract = tar.extract({ C: savedPath }, ['trivy']);
+      if (response.body == null) {
+        reject('Failed to download Trivy command file.');
+        return;
+      }
       response.body
         .on('error', reject)
         .pipe(gunzip)
