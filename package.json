@@ -39,5 +39,12 @@
     "prettier": "^1.19.1",
     "ts-jest": "^24.0.2",
     "typescript": "^3.5.1"
+  },
+  "engines": {
+    "node": "^16"
+  },
+  "volta": {
+    "node": "16.19.1",
+    "yarn": "1.22.19"
   }
 }
