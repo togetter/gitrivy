@@ -8,8 +8,14 @@ import fetch, { Response } from 'node-fetch';
 export class Downloader {
   readonly trivyRepo = {
     owner: 'aquasecurity',
-    repo: 'trivy',
+    repo: 'trivy'
   };
+
+  client: Octokit;
+
+  constructor(client: Octokit) {
+    this.client = client;
+  }
 
   async download(
     version: string,
@@ -51,7 +57,7 @@ export class Downloader {
       }
       throw new Error(`${filename} does not include in GitHub releases`);
     } catch (err) {
-      core.error(err.message);
+      core.error((err as Error).message);
 
       const errMsg = `Could not find Trivy asset that you specified.
       Version: ${version}
@@ -68,15 +74,16 @@ export class Downloader {
     version: string;
   }> {
     let response;
-    const client = new Octokit();
 
     if (version === 'latest') {
-      response = await client.repos.getLatestRelease({ ...this.trivyRepo });
+      response = await this.client.repos.getLatestRelease({
+        ...this.trivyRepo
+      });
       version = response.data.tag_name.replace(/v/, '');
     } else {
-      response = await client.repos.getReleaseByTag({
+      response = await this.client.repos.getReleaseByTag({
         ...this.trivyRepo,
-        tag: `v${version}`,
+        tag: `v${version}`
       });
     }
 

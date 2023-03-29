@@ -1,4 +1,5 @@
 import * as core from '@actions/core';
+import { Octokit } from '@octokit/rest';
 import { Downloader } from './downloader';
 import { GitHub } from './github';
 import { Inputs } from './inputs';
@@ -8,7 +9,9 @@ async function run(): Promise<void> {
   const inputs = new Inputs();
   inputs.validate();
 
-  const downloader = new Downloader();
+  const octokit = new Octokit({ auth: inputs.token });
+
+  const downloader = new Downloader(octokit);
   const trivyCmdPath = await downloader.download(inputs.trivy.version);
   const result = scan(trivyCmdPath, inputs.image, inputs.trivy.option);
 
@@ -16,7 +19,7 @@ async function run(): Promise<void> {
     return;
   }
 
-  const github = new GitHub(inputs.token);
+  const github = new GitHub(octokit);
   const issueOption = { body: result, ...inputs.issue };
   const output = await github.createOrUpdateIssue(inputs.image, issueOption);
 

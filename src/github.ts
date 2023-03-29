@@ -6,8 +6,8 @@ import { IssueOption, IssueResponse } from './interface';
 export class GitHub {
   client: Octokit;
 
-  constructor(token: string) {
-    this.client = new Octokit({ auth: token });
+  constructor(client: Octokit) {
+    this.client = client;
   }
 
   async getTrivyIssues(image: string, labels: string[] | undefined) {
@@ -18,7 +18,7 @@ export class GitHub {
     let { data: trivyIssues } = await this.client.issues.listForRepo({
       ...github.context.repo,
       state: 'open',
-      labels: labels.join(','),
+      labels: labels.join(',')
     });
 
     return trivyIssues.filter(
@@ -29,7 +29,7 @@ export class GitHub {
   async createIssue(options: IssueOption): Promise<IssueResponse> {
     const { data: issue } = await this.client.issues.create({
       ...github.context.repo,
-      ...options,
+      ...options
     });
     return { issueNumber: issue.number, htmlUrl: issue.html_url };
   }
@@ -38,7 +38,7 @@ export class GitHub {
     await this.client.issues.update({
       ...github.context.repo,
       issue_number: issueNumber,
-      body: options.body,
+      body: options.body
     });
   }
 
@@ -55,7 +55,7 @@ export class GitHub {
       await this.updateIssue(existingIssue.number, options);
       return {
         issueNumber: existingIssue.number,
-        htmlUrl: existingIssue.html_url,
+        htmlUrl: existingIssue.html_url
       };
     } else {
       core.info('Create new issue');
